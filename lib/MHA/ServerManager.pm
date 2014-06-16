@@ -670,7 +670,7 @@ sub validate_current_master($) {
     unless ($master) {
       $log->error(
         sprintf(
-"Master %s:%d from which slave %s replicates is not defined in the configuration file!",
+"Master %s:%d from which slave %s replicates is (not defined/disabled) in the configuration file!",
           $slave->{Master_IP}, $slave->{Master_Port},
           $slave->get_hostinfo()
         )

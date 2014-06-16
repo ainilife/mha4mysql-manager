@@ -147,6 +147,37 @@ sub get_connection_id($) {
   return $href->{Value};
 }
 
+sub check_connection_fast_util_and_read_only {
+  my $host     = shift;
+  my $port     = shift;
+  my $user     = shift;
+  my $password = shift;
+
+  my $dsn = "DBI:mysql:;host=$host;port=$port;mysql_connect_timeout=1";
+  my $dbh = DBI->connect( $dsn, $user, $password, { PrintError => 0 } );
+  if ( defined($dbh) ) {
+      my $sth  = $dbh->prepare('select @@read_only as Value');
+      $sth->execute();
+      my $href = $sth->fetchrow_hashref;
+      if( $href->{Value} eq '0' ){
+        return "1:Connection Succeeded";
+      }
+  }
+  else {
+    my $mysql_err = DBI->err;
+    if ( $mysql_err
+      && grep ( $_ == $mysql_err, @MHA::ManagerConst::ALIVE_ERROR_CODES ) > 0 )
+    {
+      my $rc = $mysql_err;
+      $rc .= "($DBI::errstr)" if ($DBI::errstr);
+      return $rc;
+    }
+  }
+
+  #server is dead
+  return 0;
+}
+
 sub connect_util {
   my $host     = shift;
   my $port     = shift;

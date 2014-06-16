@@ -906,6 +906,41 @@ sub stop_sql_thread {
   return 0;
 }
 
+sub is_repl_ok {
+  my $self = shift;
+  my $log  = shift;
+  $log = $self->{logger} unless ($log);
+  my $dbhelper = $self->{dbhelper};
+  my %status   = $dbhelper->check_slave_status();
+  if ( $status{Status} ) {
+    my $msg =
+      sprintf( "Checking slave status failed on %s.", $self->get_hostinfo() );
+    $msg .= " err=$status{Errstr}" if ( $status{Errstr} );
+    $log->error($msg);
+    return 0;
+  }
+  return 1 if ( $status{Slave_SQL_Running} eq "Yes" && $status{Slave_IO_Running} eq 'Yes' );
+  if ( $status{Slave_IO_Running} eq "No" ) {
+    $log->warn(
+      sprintf( "IO Thread is stopped on %s", $self->get_hostinfo() )
+    );
+    return 0;
+  }
+  if ( $status{Slave_IO_Running} eq "No" && $status{Last_Errno} eq '0' ) {
+    $log->warn(
+      sprintf( "SQL Thread is stopped on %s", $self->get_hostinfo() )
+    );
+    return 0;
+  }
+  $log->warn(
+    sprintf(
+      "SQL Thread is stopped(error) on %s! Errno:%s, Error:%s",
+      $self->get_hostinfo(), $status{Last_Errno}, $status{Last_Error}
+    )
+  );
+  return 0;
+}
+
 sub is_sql_thread_error {
   my $self = shift;
   my $log  = shift;

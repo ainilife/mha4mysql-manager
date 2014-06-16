@@ -31,7 +31,7 @@ use MHA::NodeUtil;
 use MHA::ManagerConst;
 
 my @PARAM_ARRAY =
-  qw/ hostname ip port ssh_host ssh_ip ssh_port ssh_connection_timeout ssh_options node_label candidate_master no_master ignore_fail skip_init_ssh_check skip_reset_slave user password repl_user repl_password disable_log_bin master_pid_file handle_raw_binlog ssh_user remote_workdir master_binlog_dir log_level manager_workdir manager_log check_repl_delay check_repl_filter latest_priority multi_tier_slave ping_interval ping_type secondary_check_script master_ip_failover_script master_ip_online_change_script shutdown_script report_script init_conf_load_script client_bindir client_libdir use_gtid_auto_pos/;
+  qw/ hostname ip port ssh_host ssh_ip ssh_port ssh_connection_timeout ssh_options node_label candidate_master no_master ignore_fail skip_init_ssh_check skip_reset_slave user password repl_user repl_password disable_log_bin master_pid_file handle_raw_binlog ssh_user remote_workdir master_binlog_dir log_level manager_workdir manager_log check_repl_delay check_repl_filter latest_priority multi_tier_slave ping_interval ping_type secondary_check_script master_ip_failover_script master_ip_online_change_script shutdown_script report_script init_conf_load_script client_bindir client_libdir use_gtid_auto_pos slave_ip_online_change_script slave_ip_failover_script node_ip_online_script disabled/;
 my %PARAM;
 for (@PARAM_ARRAY) { $PARAM{$_} = 1; }
 
@@ -157,6 +157,22 @@ sub parse_server {
   $value{report_script} = $param_arg->{report_script};
   if ( !defined( $value{report_script} ) ) {
     $value{report_script} = $default->{report_script};
+  }
+  $value{slave_ip_online_change_script} = $param_arg->{slave_ip_online_change_script};
+  if ( !defined( $value{slave_ip_online_change_script} ) ) {
+    $value{slave_ip_online_change_script} = $default->{slave_ip_online_change_script};
+  }
+  $value{slave_ip_failover_script} = $param_arg->{slave_ip_failover_script};
+  if ( !defined( $value{slave_ip_failover_script} ) ) {
+    $value{slave_ip_failover_script} = $default->{slave_ip_failover_script};
+  }
+  $value{node_ip_online_script} = $param_arg->{node_ip_online_script};
+  if ( !defined( $value{node_ip_online_script} ) ) {
+    $value{node_ip_online_script} = $default->{node_ip_online_script};
+  }
+  $value{disabled} = $param_arg->{disabled};
+  if ( !defined( $value{disabled} ) ) {
+    $value{disabled} = 0;
   }
   $value{master_ip_failover_script} = $param_arg->{master_ip_failover_script};
   if ( !defined( $value{master_ip_failover_script} ) ) {
@@ -441,6 +457,125 @@ sub read_config($) {
   return ( \@servers, \@binlog_servers );
 }
 
+sub read_config_with_disabled($$$) {
+  my $self              = shift;
+  my $disabled_ip       = shift;
+  my $disabled_port     = shift;
+  my $log               = $self->{logger};
+  my @servers           = ();
+  my @binlog_servers    = ();
+  my $global_configfile = $self->{globalfile};
+  my $configfile        = $self->{file};
+  my $sd;
+
+  if ( -f $global_configfile ) {
+    my $global_cfg = Config::Tiny->read($global_configfile)
+      or croak "$global_configfile:$!\n";
+
+    $log->info("Reading default configuration from $self->{globalfile}..")
+      if ($log);
+    $sd = $self->parse_server_default( $global_cfg->{"server default"} );
+  }
+  else {
+    $log->warning(
+      "Global configuration file $self->{globalfile} not found. Skipping.")
+      if ($log);
+    $sd = new MHA::Server();
+  }
+
+  my $cfg = Config::Tiny->read($configfile) or croak "$configfile:$!\n";
+  $log->info("Reading application default configuration from $self->{file}..")
+    if ($log);
+
+  # Read application default settings
+  $sd = $self->parse_server( $cfg->{"server default"}, $sd );
+
+  if ( defined( $sd->{init_conf_load_script} ) ) {
+    $log->info( "Updating application default configuration from "
+        . $sd->{init_conf_load_script}
+        . ".." )
+      if ($log);
+    my @rows = `$sd->{init_conf_load_script}`;
+    my $param;
+    foreach my $row (@rows) {
+      chomp($row);
+      my ( $name, $value ) = split( /=/, $row );
+      $param->{$name} = $value;
+    }
+    $sd = $self->parse_server( $param, $sd );
+  }
+
+  $log->info("Reading server configuration from $self->{file}..") if ($log);
+
+  my @blocks = sort keys(%$cfg);
+  foreach my $block (@blocks) {
+    next if ( $block eq "server default" );
+    if ( $block !~ /^server\S+/ && $block !~ /^binlog\S+/ ) {
+      my $msg =
+"Block name \"$block\" is invalid. Block name must be \"server default\" or start from \"server\"(+ non-whitespace characters).";
+      $log->error($msg) if ($log);
+      croak($msg);
+    }
+    my $server = $self->parse_server( $cfg->{$block}, $sd );
+    $server->{id} = $block;
+    if ( $block =~ /^server\S+/ && $server->{disabled} eq '0' ) {
+      push( @servers, $server );
+    }
+    elsif ( $block =~ /^binlog\S+/ && $server->{disabled} eq '0' ) {
+      push( @binlog_servers, $server );
+    }elsif( $server->{ip} eq $disabled_ip && $server->{port} == $disabled_port ){
+        push( @servers, $server );
+    }
+  }
+  my @tmp;
+  foreach (@servers) {
+    push @tmp, [ $1, $_ ] if ( $_->{id} =~ m/^server\D*([\d]+).*/ );
+  }
+
+  # If all IDs are integers, sort by intergers
+  if ( $#servers == $#tmp ) {
+    @servers = map { $_->[1] } ( sort { $a->[0] <=> $b->[0] } @tmp );
+  }
+  unless (@servers) {
+    my $msg =
+"No server is defined in configurations file. Check configurations for details";
+    $log->error($msg) if ($log);
+    croak($msg);
+  }
+
+  # check hostname exists
+  for ( my $i = 0 ; $i <= $#servers ; $i++ ) {
+    unless ( $servers[$i]->{hostname} ) {
+      my $msg = sprintf(
+"Server %s does not have hostname! Check configurations and make sure to set hostname parameter.",
+        $servers[$i]->{id},
+      );
+      $log->error($msg) if ($log);
+      croak($msg);
+    }
+  }
+
+  # check duplicate hosts
+  for ( my $i = 0 ; $i <= $#servers ; $i++ ) {
+    for ( my $j = $i + 1 ; $j <= $#servers ; $j++ ) {
+      if ( $servers[$i]->{ip} eq $servers[$j]->{ip}
+        && $servers[$i]->{port} eq $servers[$j]->{port} )
+      {
+        my $msg = sprintf(
+"Server %s(hostname %s) and %s(hostname %s) have duplicate ip:port(%s:%d)! Check configurations.",
+          $servers[$i]->{id}, $servers[$i]->{hostname},
+          $servers[$j]->{id}, $servers[$j]->{hostname},
+          $servers[$i]->{ip}, $servers[$i]->{port}
+        );
+        $log->error($msg) if ($log);
+        croak($msg);
+      }
+    }
+  }
+
+  return ( \@servers, \@binlog_servers );
+}
+
 sub parse_server_default {
   my $self = shift;
   my $arg  = shift;
@@ -509,6 +644,50 @@ sub delete_block_and_save {
   delete $config->{$block_name};
   $config->write($file);
   $msg = "Deleted $block_name entry from $file .";
+  print_msg( $msg, $log );
+}
+
+sub disable_block_and_save {
+  my $file       = shift;
+  my $block_name = shift;
+  my $log        = shift;
+  my $config     = Config::Tiny->read($file);
+  my $msg;
+  unless ($config) {
+    $msg = "Failed to open $file!";
+    print_msg( $msg, $log );
+    return;
+  }
+  unless ( $config->{$block_name} ) {
+    $msg = "Entry $block_name not found from $file .";
+    print_msg( $msg, $log );
+    return;
+  }
+  $config->{$block_name}->{disabled}=1;
+  $config->write($file);
+  $msg = "Disabled $block_name entry from $file .";
+  print_msg( $msg, $log );
+}
+
+sub enable_block_and_save {
+  my $file       = shift;
+  my $block_name = shift;
+  my $log        = shift;
+  my $config     = Config::Tiny->read($file);
+  my $msg;
+  unless ($config) {
+    $msg = "Failed to open $file!";
+    print_msg( $msg, $log );
+    return;
+  }
+  unless ( $config->{$block_name} ) {
+    $msg = "Entry $block_name not found from $file .";
+    print_msg( $msg, $log );
+    return;
+  }
+  $config->{$block_name}->{disabled}=0;
+  $config->write($file);
+  $msg = "Enabled $block_name entry from $file .";
   print_msg( $msg, $log );
 }
 

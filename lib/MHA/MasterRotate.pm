@@ -49,6 +49,7 @@ my $g_running_updates_limit = 1;
 my $g_running_seconds_limit = 10;
 my $g_skip_lock_all_tables;
 my $g_remove_orig_master_conf;
+my $g_disable_orig_master_conf;
 my $g_interactive = 1;
 my $_server_manager;
 my $start_datetime;
@@ -57,7 +58,7 @@ my $log = MHA::ManagerUtil::init_log();
 
 sub identify_orig_master() {
   my $orig_master;
-  my ( @servers, @dead_servers, @alive_servers, @alive_slaves );
+  my ( @servers, @dead_servers, @alive_servers, @alive_slaves ,@disabled_slaves );
   $log->info("MHA::MasterRotate version $MHA::ManagerConst::VERSION.");
   $log->info("Starting online master switch..");
   $log->info();
@@ -633,6 +634,13 @@ sub do_master_online_switch {
       switch_slaves( $orig_master, $new_master, $orig_master_log_file,
       $orig_master_log_pos, $master_log_file, $master_log_pos );
 
+    if ( $g_disable_orig_master_conf
+      && $error_code == 0 )
+    {
+      MHA::Config::disable_block_and_save( $g_config_file, $orig_master->{id},
+        $log );
+    }
+
     if ( $g_remove_orig_master_conf
       && !$g_orig_master_is_new_slave
       && $error_code == 0 )
@@ -711,6 +719,8 @@ sub main {
     'skip_lock_all_tables'     => \$g_skip_lock_all_tables,
     'remove_dead_master_conf'  => \$g_remove_orig_master_conf,
     'remove_orig_master_conf'  => \$g_remove_orig_master_conf,
+    'disable_orig_master_conf' => \$g_disable_orig_master_conf,
+    'disable_dead_master_conf' => \$g_disable_orig_master_conf,
     'flush_tables=i'           => \$g_flush_tables,
   );
   if ( $#ARGV >= 0 ) {
