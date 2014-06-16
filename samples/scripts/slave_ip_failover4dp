@@ -1,0 +1,101 @@
+#!/usr/bin/env perl
+
+#  Copyright (C) 2011 DeNA Co.,Ltd.
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#  Foundation, Inc.,
+#  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+## Note: This is a sample script and is not complete. Modify the script based on your environment.
+
+use strict;
+use warnings FATAL => 'all';
+
+use Getopt::Long;
+use MHA::DBHelper;
+use MHA::NodeUtil;
+use Time::HiRes qw( sleep gettimeofday tv_interval );
+use Data::Dumper;
+use LWP::UserAgent;
+
+my $_tstart;
+my $_running_interval = 0.1;
+my $slave_mysql_user='msandbox';
+my $slave_mysql_pass='msandbox';
+my (
+  $command, $ssh_user, $orig_slave_host, $orig_slave_ip, $orig_slave_port 
+);
+GetOptions(
+  'command=s'          => \$command,
+  'ssh_user=s'         => \$ssh_user,
+  'orig_slave_host=s' => \$orig_slave_host,
+  'orig_slave_ip=s'   => \$orig_slave_ip,
+  'orig_slave_port=i' => \$orig_slave_port,
+);
+
+exit &main();
+
+sub main {
+  if ( $command eq "stop" || $command eq "stopssh" ) {
+
+    # $orig_slave_host, $orig_slave_ip, $orig_slave_port are passed.
+    # If you manage slave ip address at global catalog database,
+    # invalidate orig_slave_ip here.
+    my $exit_code = 1;
+    eval {
+        my $ua=LWP::UserAgent->new;
+        $ua->timeout(5);
+        my $url='http://zebra-web01.beta/a/service';
+        my $request_hash= [
+                "op"=>'markDown',
+                "env"=>'dev',
+                "ip"=>$orig_slave_ip,
+                "port"=>$orig_slave_port,
+        ];
+        my $remote_response=$ua->post($url,$request_hash);
+        my $content=$remote_response->decoded_content;
+        
+        if($content =~ /\{\"status\"\:\ \"0\"/){
+            print "The response from remote server $url is OK:$content\n";
+        }else{
+            #remote response is not OK
+            print "$@";
+            warn "The response from remote server $url is not OK:$content\n";
+            $exit_code=1;
+            exit $exit_code;
+        }
+        $exit_code = 0;
+    };
+    if ($@) {
+      warn "Got Error: $@\n";
+      exit $exit_code;
+    }
+    exit $exit_code;
+  }
+  elsif ( $command eq "status" ) {
+
+    # do nothing
+    exit 0;
+  }
+  else {
+    &usage();
+    exit 1;
+  }
+}
+
+sub usage {
+  print
+"Usage: slave_ip_failover4dp --command=stop|stopssh|status --orig_slave_host=host --orig_slave_ip=ip --orig_slave_port=port \n";
+}
+

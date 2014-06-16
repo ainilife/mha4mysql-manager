@@ -1,0 +1,73 @@
+#!/usr/bin/env perl
+
+#  Copyright (C) 2011 DeNA Co.,Ltd.
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#  Foundation, Inc.,
+#  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+use strict;
+use warnings FATAL => 'all';
+
+use Getopt::Long qw(:config pass_through);
+use Pod::Usage;
+use MHA::NodeOnline;
+use MHA::ManagerConst;
+
+my $help;
+my $version;
+
+$| = 1;
+
+GetOptions(
+  'help'           => \$help,
+  'version'        => \$version,
+);
+
+my $exit_code = 1;
+
+if ($version) {
+  print "masterha_node_online version $MHA::ManagerConst::VERSION.\n";
+  exit 0;
+}
+
+if ($help) {
+  pod2usage(0);
+}
+
+$exit_code = MHA::NodeOnline::main(@ARGV);
+
+exit $exit_code;
+
+# ############################################################################
+# Documentation
+# ############################################################################
+
+=pod
+
+=head1 NAME
+
+masterha_node_online - Switching MySQL server to online from offline
+
+=head1 SYNOPSIS
+
+# For node online failover
+
+masterha_node_online --global_conf=/etc/masterha_default.cnf --conf=/usr/local/masterha/conf/app1.cnf --new_node_host=host1 --new_node_port
+
+
+
+=head1 DESCRIPTION
+
+

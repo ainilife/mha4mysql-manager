@@ -1,0 +1,304 @@
+#!/usr/bin/env perl
+
+#  Copyright (C) 2011 DeNA Co.,Ltd.
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#  Foundation, Inc.,
+#  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+use strict;
+use warnings FATAL => 'all';
+
+use Pod::Usage;
+use MHA::ManagerConst;
+use MHA::ManagerAdminWrapper;
+use MHA::ManagerUtil;
+
+my @SUPPORTED_CMD = qw/ show set_online set_offline force_offline/;
+my %SUPPORTED_CMD_HASH;
+for (@SUPPORTED_CMD) { $SUPPORTED_CMD_HASH{$_} = 1; }
+my $app;
+my $cmd;
+my $conf_default_dir='/etc/mha/';
+my $app_conf_file;
+my $help;
+my $version;
+
+my $exit_code = 1;
+$| = 1;
+
+my $app_str = shift @ARGV;
+unless ( defined($app_str) ){
+    print "ERROR: Please provide app name\n";
+    exit $exit_code;
+}
+if ( $app_str =~ /^@(.*)$/ ){
+    $app = $1;
+}else{
+    print "ERROR: Incorrect app name format: <$app_str>\n";
+    exit $exit_code;
+}
+
+unless ($app_conf_file){
+    $app_conf_file = $conf_default_dir.$app.'.cnf';
+}
+print "INFO: Reading configure file <$app_conf_file>\n";
+unless ( -e $app_conf_file){
+    print "ERROR: Config file <$app_conf_file> dose not exist!\n";
+    exit $exit_code;
+}
+
+$cmd = shift @ARGV;
+unless ( defined($cmd) ){
+    print "ERROR: Please provide command\n";
+    exit $exit_code;
+}
+my $node = shift @ARGV;
+my $ip = shift @ARGV;
+push( @ARGV,"--conf=$app_conf_file" );
+if ( exists($SUPPORTED_CMD_HASH{$cmd}) ){
+    if( $cmd eq 'set_offline' ){
+        unless ( $node eq 'master' || $node =~ /\d+:\d+/ ){
+            print "ERROR: incorrect node name:$node\n";
+            $exit_code=1;
+            exit $exit_code;
+        }
+        my $is_manager_alive = MHA::ManagerAdminWrapper::check_status();
+        if( $is_manager_alive eq $MHA::ManagerConst::ST_RUNNING ){
+            print "INFO: MHA manager is running, try to stop it before set_offline\n";
+            my $stop_code = MHA::ManagerAdminWrapper::stop_manager();
+            unless( $stop_code == 0 ){
+                $exit_code=2;
+                print "ERROR: Failed to stop MHA manager\n";
+                exit $exit_code;
+            }
+        }elsif( $is_manager_alive eq $MHA::ManagerConst::ST_NOT_RUNNING ){
+            print "INFO: MHA manager is not running\n";
+        }else{
+            print "Fatal Error: MHA manager is running, but in a unkown state:$is_manager_alive\n";
+            $exit_code=3;
+            exit $exit_code;
+        }
+        if( $node eq 'master' ){
+            my $foo=1;
+            my $master_switch_opt='';
+            $master_switch_opt.=" --master_state=alive";
+            $master_switch_opt.=" --conf=$app_conf_file";
+            $master_switch_opt.=" --orig_master_is_new_slave";
+            $master_switch_opt.=" --disable_orig_master_conf";
+            my ( $high, $low ) 
+                = MHA::ManagerUtil::exec_system("masterha_master_switch $master_switch_opt");
+        }elsif( $node =~ /([0-9.]+):([0-9]+)/ ){
+            my $node_ip = $1;
+            my $node_port = $2;
+            my $slave_switch_opt='';
+            $slave_switch_opt.=" --slave_state=alive";
+            $slave_switch_opt.=" --conf=$app_conf_file";
+            $slave_switch_opt.=" --disable_dead_slave_conf";
+            $slave_switch_opt.=" --rotate_slave_host=$node_ip";
+            $slave_switch_opt.=" --rotate_slave_port=$node_port";
+            my ( $high,$low )
+                = MHA::ManagerUtil::exec_system("masterha_slave_switch $slave_switch_opt");
+            if ( $high == 0 && $low == 0 ) {
+                print "INFO: Slave set_offline success\n";
+            }
+            else {
+              if ( $high == 10 ) {
+                print "INFO: Slave set_offline proceeding\n";
+              }
+              else {
+                print "ERROR: set_offline slave failed\n";
+                $exit_code=4;
+                exit $exit_code;
+              }
+            }
+        }else{
+            print "ERROR: incorrect node name:<$node> for set_offline\n";
+            $exit_code=1;
+            exit $exit_code;
+        }
+        
+
+    }elsif( $cmd eq 'force_offline' ){
+        unless ( $node eq 'master' || $node =~ /\d+:\d+/ ){
+            print "ERROR: incorrect node name:$node\n";
+            $exit_code=1;
+            exit $exit_code;
+        }
+        my $is_manager_alive = MHA::ManagerAdminWrapper::check_status();
+        if( $is_manager_alive eq $MHA::ManagerConst::ST_RUNNING ){
+            print "INFO: MHA manager is running, try to stop it before set_offline\n";
+            my $stop_code = MHA::ManagerAdminWrapper::stop_manager();
+            unless( $stop_code == 0 ){
+                $exit_code=2;
+                print "ERROR: Failed to stop MHA manager\n";
+                exit $exit_code;
+            }
+        }elsif( $is_manager_alive eq $MHA::ManagerConst::ST_NOT_RUNNING ){
+            print "INFO: MHA manager is not running\n";
+        }else{
+            print "Fatal Error: MHA manager is running, but in a unkown state:$is_manager_alive\n";
+            $exit_code=3;
+            exit $exit_code;
+        }
+        if( $node eq 'master' ){
+            if( $ip =~ /([0-9.]+):([0-9]+)/ ){
+                my $node_ip = $1;
+                my $node_port = $2;
+                my $master_switch_opt='';
+                $master_switch_opt.=" --master_state=dead";
+                $master_switch_opt.=" --conf=$app_conf_file";
+                $master_switch_opt.=" --disable_dead_master_conf";
+                $master_switch_opt.=" --dead_master_host=$node_ip";
+                $master_switch_opt.=" --dead_master_port=$node_port";
+                my ( $high, $low ) 
+                    = MHA::ManagerUtil::exec_system("masterha_master_switch $master_switch_opt");
+            }else{
+                print "Error: master ip format not correct: $ip\n";
+                exit $exit_code;
+            }
+        }elsif( $node eq 'slave' ){
+            if( $ip =~ /([0-9.]+):([0-9]+)/ ){
+                my $node_ip = $1;
+                my $node_port = $2;
+                my $slave_switch_opt='';
+                $slave_switch_opt.=" --slave_state=dead";
+                $slave_switch_opt.=" --conf=$app_conf_file";
+                $slave_switch_opt.=" --disable_dead_slave_conf";
+                $slave_switch_opt.=" --rotate_slave_host=$node_ip";
+                $slave_switch_opt.=" --rotate_slave_port=$node_port";
+                my ( $high,$low )
+                    = MHA::ManagerUtil::exec_system("masterha_slave_switch $slave_switch_opt");
+                if ( $high == 0 && $low == 0 ) {
+                    print "INFO: Slave set_offline success\n";
+                }
+                else {
+                  if ( $high == 10 ) {
+                    print "INFO: Slave set_offline proceeding\n";
+                  }
+                  else {
+                    print "ERROR: set_offline slave failed\n";
+                    $exit_code=4;
+                    exit $exit_code;
+                  }
+                }
+            }else{
+                print "Error: slave ip format not correct: $ip\n";
+                exit $exit_code;
+            }
+        }else{
+            print "ERROR: incorrect node name:<$node> for set_offline\n";
+            $exit_code=1;
+            exit $exit_code;
+        }
+    }elsif( $cmd eq 'set_online' ){
+#ensure MHA Manager is not running before node online
+        my $is_manager_alive = MHA::ManagerAdminWrapper::check_status();
+        if( $is_manager_alive eq $MHA::ManagerConst::ST_RUNNING){
+            print "INFO: MHA manager is running, try to stop it before set_online\n";
+            my $stop_code = MHA::ManagerAdminWrapper::stop_manager();
+            unless( $stop_code == 0 ){
+                $exit_code=2;
+                print "ERROR: Failed to stop MHA manager\n";
+                exit $exit_code;
+            }
+        }elsif( $is_manager_alive eq $MHA::ManagerConst::ST_NOT_RUNNING ){
+            print "INFO: MHA manager is not running\n";
+        }else{
+            print "Error: MHA manager is running, but in a unkown state:$is_manager_alive\n";
+            $exit_code=3;
+            exit $exit_code;
+        }
+
+#Starting to set online
+        if( $node =~ /([0-9.]+):([0-9]+)/ ){
+            my $node_ip = $1;
+            my $node_port = $2;
+            my $slave_switch_opt='';
+            $slave_switch_opt.=" --conf=$app_conf_file";
+            $slave_switch_opt.=" --new_node_host=$node_ip";
+            $slave_switch_opt.=" --new_node_port=$node_port";
+            my ( $high,$low )
+                = MHA::ManagerUtil::exec_system("masterha_node_online $slave_switch_opt");
+            if ( $high == 0 && $low == 0 ) {
+                print "INFO: Node set_online success\n";
+            }
+            else {
+              if ( $high == 10 ) {
+                print "INFO: Node set_online proceeding\n";
+              }
+              else {
+                print "ERROR: Node set_online failed\n";
+                $exit_code=4;
+                exit $exit_code;
+              }
+            }
+        }else{
+            print "ERROR: incorrect node name:<$node> for set_offline\n";
+            $exit_code=1;
+            exit $exit_code;
+        }
+
+    }
+}else{
+    $exit_code = 10;
+    print "ERROR: Unsupported command [$cmd]\n";
+    pod2usage(0);
+}
+
+
+if ($version) {
+  print "mha_control version $MHA::ManagerConst::VERSION.\n";
+  exit 0;
+}
+
+if ($help) {
+  pod2usage(0);
+}
+
+
+
+exit $exit_code;
+
+# ############################################################################
+# Documentation
+# ############################################################################
+
+=pod
+
+=head1 NAME
+
+mha_control - CLI interact with MHA
+
+=head1 SYNOPSIS
+
+mha_control @app show
+
+mha_control @app set_offline master
+
+mha_control @app set_offline $node
+
+mha_control @app set_online $node
+
+mha_control @app force_offline master $node_ip:$port
+
+mha_control @app force_offline slave $node_ip:$port
+
+See online reference (http://code.google.com/p/mysql-master-ha/wiki/masterha_check_repl) for details.
+
+=head1 DESCRIPTION
+
+See online reference (http://code.google.com/p/mysql-master-ha/wiki/masterha_check_repl) for details.
+
+

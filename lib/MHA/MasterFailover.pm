@@ -51,6 +51,7 @@ my $g_wait_on_failover_error = 0;
 my $g_ignore_last_failover;
 my $g_skip_save_master_binlog;
 my $g_remove_dead_master_conf;
+my $g_disable_orig_master_conf;
 my $g_skip_change_master;
 my $g_skip_disable_read_only;
 my $g_wait_until_gtid_in_sync = 1;
@@ -2137,6 +2138,12 @@ sub do_master_failover {
       $master_log_file, $master_log_pos, $exec_gtid_set
     );
 
+    if ( $g_disable_orig_master_conf && $error_code == 0 )
+    {
+      MHA::Config::disable_block_and_save( $g_config_file, $dead_master->{id},
+        $log );
+    }
+
     if ( $g_remove_dead_master_conf && $error_code == 0 ) {
       MHA::Config::delete_block_and_save( $g_config_file, $dead_master->{id},
         $log );
@@ -2229,6 +2236,8 @@ sub main {
     'remove_orig_master_conf'    => \$g_remove_dead_master_conf,
     'skip_change_master'         => \$g_skip_change_master,
     'skip_disable_read_only'     => \$g_skip_disable_read_only,
+    'disable_orig_master_conf'   => \$g_disable_orig_master_conf,
+    'disable_dead_master_conf'   => \$g_disable_orig_master_conf,
     'wait_until_gtid_in_sync=i'  => \$g_wait_until_gtid_in_sync,
     'ignore_binlog_server_error' => \$g_ignore_binlog_server_error,
   );

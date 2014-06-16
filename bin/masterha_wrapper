@@ -1,0 +1,123 @@
+#!/usr/bin/env perl
+
+#  Copyright (C) 2011 DeNA Co.,Ltd.
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#  Foundation, Inc.,
+#  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+use strict;
+use warnings FATAL => 'all';
+
+use English qw(-no_match_vars);
+use Getopt::Long qw(:config pass_through);
+use Pod::Usage;
+use Log::Dispatch;
+
+my @CMD_ARRAY = ('set_offline', 'set_online', 'status');
+my $MHA_APP_DIR='/etc/mha/';
+
+my $help;
+my $app = '';
+my $command = '';
+my $target_node = '';
+my $log = Log::Dispatch->new(
+            outputs=> [ [ 'Screen',min_level => 'debug'], ]);
+
+$| = 1;
+
+if( $#ARGV<1 || $#ARGV>2 ){
+    print "[Error] Invalid arguments count!\n";
+    pod2usage(0);
+}
+
+my $param1 = shift(@ARGV);
+if( $param1=~/^\@(\S+)$/ ){
+    $app = $1;
+    print "$app\n";
+    $command = shift(@ARGV);
+    unless( -e "$MHA_APP_DIR/$app" ){
+        $log->error("Cannont find configuration file for <$app> under $MHA_APP_DIR\n");
+        exit 1;
+    }
+}else{
+    $command = $param1;
+    if( $command=='set_offline' ){
+        $target_node = shift(@ARGV);
+    }elsif( $command=='set_online' ){
+        $target_node = shift(@ARGV);
+    }elsif( $command=='status' ){
+        my $foo=1;
+    }else{
+        print "[Error] Unkown Command!\n";
+        pod2usage(0);
+    }
+}
+
+if( $command ne 'set_offline' ){
+    #find app configure file
+
+    #check whether mha_manager is running
+    #stop mha_manager if running
+    #check whether the node is master
+    #call mha_switch_master if master
+    #call mha_switch_slave if slave
+    #restart mha_manager
+}
+
+if( $command ne 'set_online' ){
+    #find app configure file
+    #check whether mha_manager is running
+    #stop mha_manager if running
+    #call mha_node_online
+    #restart mha_manager
+}
+
+if( $command ne 'status' ){
+    #find app configure file
+    #check whether mha_manager is running
+    #stop mha_manager if running
+    #call mha_node_online
+    #restart mha_manager
+}
+
+
+
+
+if ($help) {
+  pod2usage(0);
+}
+
+exit 0;
+
+# ############################################################################
+# Documentation
+# ############################################################################
+
+=pod
+
+=head1 NAME
+
+masterha_manager - Monitoring MySQL master server availability and do failover if it detects master failure
+
+=head1 SYNOPSIS
+
+masterha_manager --global_conf=/etc/masterha_default.cnf --conf=/usr/local/masterha/conf/app1.cnf 
+
+See online reference (http://code.google.com/p/mysql-master-ha/wiki/masterha_manager) for details.
+
+=head1 DESCRIPTION
+
+See online reference (http://code.google.com/p/mysql-master-ha/wiki/masterha_manager) for details.
+

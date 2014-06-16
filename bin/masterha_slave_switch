@@ -1,0 +1,91 @@
+#!/usr/bin/env perl
+
+#  Copyright (C) 2011 DeNA Co.,Ltd.
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#  Foundation, Inc.,
+#  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+use strict;
+use warnings FATAL => 'all';
+
+use Getopt::Long qw(:config pass_through);
+use Pod::Usage;
+use MHA::SlaveFailover;
+use MHA::SlaveRotate;
+use MHA::ManagerConst;
+
+my $slave_state;
+my $help;
+my $version;
+my $rotate_slave_port;
+my $rotate_slave_host;
+
+$| = 1;
+
+GetOptions(
+  'help'           => \$help,
+  'version'        => \$version,
+  'slave_state=s' => \$slave_state,
+);
+
+my $exit_code = 1;
+
+if ($version) {
+  print "masterha_slave_switch version $MHA::ManagerConst::VERSION.\n";
+  exit 0;
+}
+
+if ($help) {
+  pod2usage(0);
+}
+
+unless($slave_state){
+    pod2usage(0);
+}
+
+if ( $slave_state eq "dead" ) {
+  $exit_code = MHA::SlaveFailover::main(@ARGV);
+}elsif( $slave_state eq "alive" ) {
+  $exit_code = MHA::SlaveRotate::main(@ARGV);
+}else{
+  pod2usage(0);
+}
+
+exit $exit_code;
+
+# ############################################################################
+# Documentation
+# ############################################################################
+
+=pod
+
+=head1 NAME
+
+masterha_slave_switch - Switching MySQL slave server to one of other slave servers
+
+=head1 SYNOPSIS
+
+# For slave failover
+
+masterha_slave_switch --slave_state=dead --global_conf=/etc/masterha_default.cnf --conf=/usr/local/masterha/conf/app1.cnf --dead_slave_host=host1 --dead_slave_port=port1
+
+# For online slave switch
+
+masterha_slave_switch --slave_state=alive --global_conf=/etc/masterha_default.cnf --conf=/usr/local/masterha/conf/app1.cnf --rotate_slave_host=host1 --rotate_slave_port=port1
+
+
+=head1 DESCRIPTION
+
+

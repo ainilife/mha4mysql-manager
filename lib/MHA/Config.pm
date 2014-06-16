@@ -353,7 +353,7 @@ sub read_config($) {
 
   if ( -f $global_configfile ) {
     my $global_cfg = Config::Tiny->read($global_configfile)
-      or croak "$global_configfile:$!\n";
+      or croak "Config::Tiny->read Error while reading $global_configfile:$!\n";
 
     $log->info("Reading default configuration from $self->{globalfile}..")
       if ($log);
@@ -401,10 +401,10 @@ sub read_config($) {
     }
     my $server = $self->parse_server( $cfg->{$block}, $sd );
     $server->{id} = $block;
-    if ( $block =~ /^server\S+/ ) {
+    if ( $block =~ /^server\S+/ && $server->{disabled} eq '0' ) {
       push( @servers, $server );
     }
-    elsif ( $block =~ /^binlog\S+/ ) {
+    elsif ( $block =~ /^binlog\S+/ && $server->{disabled} eq '0' ) {
       push( @binlog_servers, $server );
     }
   }
