@@ -1170,19 +1170,36 @@ sub get_ssh_args_if {
   my $arg_number    = shift;
   my $type          = shift;
   my $ssh_reachable = shift;
+  my $node_type     = shift;
 
   my $arg  = " ";
   my $head = "";
 
-  if ( $type eq "orig" ) {
-    $head = " --orig_master_";
-  }
-  elsif ( $type eq "new" ) {
-    $head = " --new_master_";
-  }
-  elsif ( $type eq "shutdown" ) {
-    $head = " --";
-  }
+    unless( defined($node_type) ){
+        $node_type='master';
+    }
+
+    if( $node_type eq 'master' ){
+        if ( $type eq "orig" ) {
+            $head = " --orig_master_";
+        }
+        elsif ( $type eq "new" ) {
+            $head = " --new_master_";
+        }
+        elsif ( $type eq "shutdown" ) {
+            $head = " --";
+        }
+    }elsif( $node_type eq 'slave' ){
+        if ( $type eq "orig" ) {
+            $head = " --orig_slave_";
+        }
+        elsif ( $type eq "new" ) {
+            $head = " --new_slave_";
+        }
+        elsif ( $type eq "shutdown" ) {
+            $head = " --";
+        }
+    }
 
   if ( $self->{hostname} ne $self->{ssh_host}
     || $self->{ip} ne $self->{ssh_ip} )

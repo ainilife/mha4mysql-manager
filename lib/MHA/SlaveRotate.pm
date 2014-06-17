@@ -100,7 +100,11 @@ sub force_shutdown_internal($) {
   if ( $rotate_slave->{slave_ip_online_change_script} ) {
     my $command =
 "$rotate_slave->{slave_ip_online_change_script} --orig_slave_host=$rotate_slave->{hostname} --orig_slave_ip=$rotate_slave->{ip} --orig_slave_port=$rotate_slave->{port}";
-  $command .= " --command=stop";
+    $command .= " --command=stop";
+    $command .= " --orig_slave_user=$rotate_slave->{escaped_user}";
+    $command .= " --orig_slave_password=$rotate_slave->{escaped_password}";
+    $command .= " --orig_slave_ssh_user=$rotate_slave->{ssh_user}";
+    $command .= $rotate_slave->get_ssh_args_if( 1, "orig", 1 , "slave");
     $log->info("Executing slave IP deactivatation script:");
     $log->info("  $command");
     my ( $high, $low ) = MHA::ManagerUtil::exec_system( $command, $g_logfile );

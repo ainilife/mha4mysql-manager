@@ -33,11 +33,12 @@ use URI::Escape;
 my $_tstart;
 my $_running_interval = 0.1;
 my (
-  $command,          $ssh_user,        $orig_master_host, $orig_master_ip,
-  $orig_master_port, $new_master_host, $new_master_ip,    $new_master_port
+  $command,              $orig_master_is_new_slave, $orig_master_host,
+  $orig_master_ip,       $orig_master_port,         $orig_master_user,
+  $orig_master_password, $orig_master_ssh_user,     $new_master_host,
+  $new_master_ip,        $new_master_port,          $new_master_user,
+  $new_master_password,  $new_master_ssh_user,
 );
-my $mysql_user='msandbox';
-my $mysql_pass='msandbox';
 GetOptions(
   'command=s'          => \$command,
   'ssh_user=s'         => \$ssh_user,
@@ -118,8 +119,8 @@ sub main {
     eval {
       # Connecting to the orig master, die if any database error happens
       my $orig_master_handler = new MHA::DBHelper();
-      $orig_master_handler->connect( $orig_master_ip, $orig_master_port,$mysql_user,
-        $mysql_pass, $dbh_raise_error );
+      $orig_master_handler->connect( $orig_master_ip, $orig_master_port,$orig_master_user,
+        $orig_master_password, $dbh_raise_error );
 
       # Notity Liger
         my $ua=LWP::UserAgent->new;
@@ -200,8 +201,8 @@ sub main {
       my $new_master_handler = new MHA::DBHelper();
 
       # args: hostname, port, user, password, raise_error_or_not
-      $new_master_handler->connect( $new_master_ip, $new_master_port,$mysql_user,
-        $mysql_pass, 1 );
+      $new_master_handler->connect( $new_master_ip, $new_master_port,$new_master_user,
+        $new_master_password, 1 );
 
       ## Set read_only=0 on the new master
       $new_master_handler->disable_log_bin_local();

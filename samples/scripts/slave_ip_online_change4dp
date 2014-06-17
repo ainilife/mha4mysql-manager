@@ -31,17 +31,18 @@ use LWP::UserAgent;
 
 my $_tstart;
 my $_running_interval = 0.1;
-my $slave_mysql_user='msandbox';
-my $slave_mysql_pass='msandbox';
 my (
   $command,
-  $orig_slave_host, $orig_slave_ip, $orig_slave_port
+  $orig_slave_host, $orig_slave_ip, $orig_slave_port,
+  $orig_slave_password, $orig_slave_password, 
 );
 GetOptions(
   'command=s'          => \$command,
   'orig_slave_host=s' => \$orig_slave_host,
   'orig_slave_ip=s'   => \$orig_slave_ip,
   'orig_slave_port=i' => \$orig_slave_port,
+  'orig_slave_user=i' => \$orig_slave_user,
+  'orig_slave_password=i' => \$orig_slave_password,
 );
 
 exit &main();
@@ -125,7 +126,7 @@ sub main {
 
       # Connecting to the orig master, die if any database error happens
       my $orig_slave_handler = new MHA::DBHelper();
-      $orig_slave_handler->connect( $orig_slave_ip, $orig_slave_port, $slave_mysql_user, $slave_mysql_pass, 1 );
+      $orig_slave_handler->connect( $orig_slave_ip, $orig_slave_port, $orig_slave_user, $orig_slave_password, 1 );
 
       ## Waiting for N * 100 milliseconds so that current connections can exit
       my $time_until_notify = 1;
