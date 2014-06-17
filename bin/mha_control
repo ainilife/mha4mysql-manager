@@ -131,8 +131,8 @@ if ( exists($SUPPORTED_CMD_HASH{$cmd}) ){
         
 
     }elsif( $cmd eq 'force_offline' ){
-        unless ( $node eq 'master' || $node =~ /\d+:\d+/ ){
-            print "ERROR: incorrect node name:$node\n";
+        unless ( $node eq 'master' || $node eq 'slave' || $node =~ /[0-9.]+:[0-9.]+/ ){
+            print "ERROR: incorrect node name for $cmd: $node\n";
             $exit_code=1;
             exit $exit_code;
         }
@@ -176,8 +176,8 @@ if ( exists($SUPPORTED_CMD_HASH{$cmd}) ){
                 $slave_switch_opt.=" --slave_state=dead";
                 $slave_switch_opt.=" --conf=$app_conf_file";
                 $slave_switch_opt.=" --disable_dead_slave_conf";
-                $slave_switch_opt.=" --rotate_slave_host=$node_ip";
-                $slave_switch_opt.=" --rotate_slave_port=$node_port";
+                $slave_switch_opt.=" --dead_slave_host=$node_ip";
+                $slave_switch_opt.=" --dead_slave_port=$node_port";
                 my ( $high,$low )
                     = MHA::ManagerUtil::exec_system("masterha_slave_switch $slave_switch_opt");
                 if ( $high == 0 && $low == 0 ) {

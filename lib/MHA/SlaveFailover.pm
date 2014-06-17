@@ -211,14 +211,28 @@ sub check_settings($) {
         localtime($lastts);
       $mm = $mm + 1;
       $yy = $yy + 1900;
-      my $msg =
-          "Last failover was done at "
-        . "$yy/$mm/$dd $hh:$min:$sec."
-        . " Current time is too early to do failover again. If you want to "
-        . "do failover, manually remove $_failover_complete_file "
-        . "and run this script again.";
-      $log->error($msg);
-      croak;
+      if ($g_interactive) {
+          print "Last failover was done at "
+            . "$yy/$mm/$dd $hh:$min:$sec."
+              . " Maybe it's too early to do failover again. "
+              . " Are sure to Proceed? (yes/NO): ";
+        my $ret = <STDIN>;
+        chomp($ret);
+        if ( lc($ret) !~ /^y/ ){
+            die "Stopping failover." 
+        }else{
+          MHA::NodeUtil::drop_file_if($_failover_complete_file);
+        }
+      }else{
+          my $msg =
+              "Last failover was done at "
+            . "$yy/$mm/$dd $hh:$min:$sec."
+            . " Current time is too early to do failover again. If you want to "
+            . "do failover, manually remove $_failover_complete_file "
+            . "and run this script again.";
+          $log->error($msg);
+          croak;
+      }
     }
     else {
       MHA::NodeUtil::drop_file_if($_failover_complete_file);
@@ -339,62 +353,43 @@ sub force_shutdown_slave($) {
     $mail_body .= "Started automated(non-interactive) failover.\n";
   }
 
-=pod
-  # If any error happens after here, a special error file is created so that
-  # it won't automatically repeat the same error.
-  $_create_error_file = 1;
-
-  my $slave_io_stopper = new Parallel::ForkManager( $#alive_slaves + 1 );
-  my $stop_io_failed   = 0;
-  $slave_io_stopper->run_on_start(
-    sub {
-      my ( $pid, $target ) = @_;
-    }
-  );
-  $slave_io_stopper->run_on_finish(
-    sub {
-      my ( $pid, $exit_code, $target ) = @_;
-      return if ( $target->{ignore_fail} );
-      $stop_io_failed = 1 if ($exit_code);
-    }
-  );
-
-  foreach my $target (@alive_slaves) {
-    $slave_io_stopper->start($target) and next;
-    eval {
-      my $rc = $target->stop_io_thread();
-      $slave_io_stopper->finish($rc);
-    };
-    if ($@) {
-      $log->error($@);
-      undef $@;
-      $slave_io_stopper->finish(1);
-    }
-    $slave_io_stopper->finish(0);
-  }
-=cut
-
   $_real_ssh_reachable = $g_ssh_reachable;
 
   # SSH reachability is unknown. Verify here.
   if ( $_real_ssh_reachable >= 2 ) {
-    if ( MHA::HealthCheck::ssh_check($dead_slave) ) {
+    if (
+      MHA::HealthCheck::ssh_check_simple(
+        $dead_slave->{ssh_user}, $dead_slave->{ssh_host},
+        $dead_slave->{ssh_ip},   $dead_slave->{ssh_port},
+        $dead_slave->{logger},   $dead_slave->{ssh_connection_timeout}
+      )
+      )
+    {
       $_real_ssh_reachable = 0;
     }
     else {
-      $_real_ssh_reachable = 1;
+
+      # additional check
+      if (
+        MHA::ManagerUtil::get_node_version(
+          $dead_slave->{logger},   $dead_slave->{ssh_user},
+          $dead_slave->{ssh_host}, $dead_slave->{ssh_ip},
+          $dead_slave->{ssh_port}
+        )
+        )
+      {
+        $_real_ssh_reachable = 1;
+      }
+      else {
+        $log->warning(
+"Failed to get MHA Node version from dead slave. Guessing that SSH is NOT reachable."
+        );
+        $_real_ssh_reachable = 0;
+      }
     }
   }
   force_shutdown_internal($dead_slave);
 
-=pod
-  $slave_io_stopper->wait_all_children;
-  if ($stop_io_failed) {
-    $log->error("Stopping IO thread failed! Check slave status!");
-    $mail_body .= "Stopping IO thread failed.\n";
-    croak;
-  }
-=cut
   return 0;
 }
 

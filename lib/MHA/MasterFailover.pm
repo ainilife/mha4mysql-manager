@@ -298,17 +298,32 @@ sub check_settings($) {
     my $lastts       = ( stat($_failover_complete_file) )[9];
     my $current_time = time();
     if ( $current_time - $lastts < $g_last_failover_minute * 60 ) {
-      my ( $sec, $min, $hh, $dd, $mm, $yy, $week, $yday, $opt ) =
+      my ( $sec, $min, $hh, $dd, $mm, $yy, $weak, $yday, $opt ) =
         localtime($lastts);
-      my $t = sprintf( "%04d/%02d/%02d %02d:%02d:%02d",
-        $yy + 1900, $mm + 1, $dd, $hh, $mm, $sec );
-      my $msg =
-          "Last failover was done at $t."
-        . " Current time is too early to do failover again. If you want to "
-        . "do failover, manually remove $_failover_complete_file "
-        . "and run this script again.";
-      $log->error($msg);
-      croak;
+      $mm = $mm + 1;
+      $yy = $yy + 1900;
+      if ($g_interactive) {
+          print "Last failover was done at "
+            . "$yy/$mm/$dd $hh:$min:$sec."
+              . " Maybe it's too early to do failover again. "
+              . " Are sure to Proceed? (yes/NO): ";
+        my $ret = <STDIN>;
+        chomp($ret);
+        if ( lc($ret) !~ /^y/ ){
+            die "Stopping failover." 
+        }else{
+          MHA::NodeUtil::drop_file_if($_failover_complete_file);
+        }
+      }else{
+          my $msg =
+              "Last failover was done at "
+            . "$yy/$mm/$dd $hh:$min:$sec."
+            . " Current time is too early to do failover again. If you want to "
+            . "do failover, manually remove $_failover_complete_file "
+            . "and run this script again.";
+          $log->error($msg);
+          croak;
+      }
     }
     else {
       MHA::NodeUtil::drop_file_if($_failover_complete_file);

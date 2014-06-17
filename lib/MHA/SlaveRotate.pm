@@ -61,11 +61,13 @@ my $g_disable_dead_slave_conf=1;
 sub init_config() {
   $log = MHA::ManagerUtil::init_log($g_logfile);
 
-  my @servers_config = new MHA::Config(
+  my ( $sc_ref, $binlog_ref ) = new MHA::Config(
     logger     => $log,
     globalfile => $g_global_config_file,
     file       => $g_config_file
   )->read_config();
+  my @servers_config        = @$sc_ref;
+  my @binlog_servers_config = @$binlog_ref;
 
   if ( !$g_logfile
     && !$g_interactive
