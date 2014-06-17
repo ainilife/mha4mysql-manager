@@ -34,14 +34,17 @@ my $_running_interval = 0.1;
 my $slave_mysql_user='msandbox';
 my $slave_mysql_pass='msandbox';
 my (
-  $command, $ssh_user, $orig_slave_host, $orig_slave_ip, $orig_slave_port 
+  $command, $orig_slave_host, $orig_slave_ip, $orig_slave_port 
+  $orig_slave_user, $orig_slave_password, $orig_slave_ssh_user
 );
 GetOptions(
   'command=s'          => \$command,
-  'ssh_user=s'         => \$ssh_user,
   'orig_slave_host=s' => \$orig_slave_host,
   'orig_slave_ip=s'   => \$orig_slave_ip,
   'orig_slave_port=i' => \$orig_slave_port,
+  'orig_slave_user=s' => \$orig_slave_user,
+  'orig_slave_password=s' => \$orig_slave_password,
+  'orig_slave_ssh_user=s' => \$orig_slave_ssh_user,
 );
 
 exit &main();

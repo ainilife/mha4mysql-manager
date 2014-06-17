@@ -605,6 +605,13 @@ sub switch_slaves($$$$$$) {
   }
 }
 
+
+sub send_report {
+  my $dead_master = shift;
+  my $new_master  = shift;
+
+}
+
 sub do_master_online_switch {
   my $error_code = 1;
   my $orig_master;
@@ -660,6 +667,13 @@ sub do_master_online_switch {
       MHA::ManagerUtil::print_error( "Got ERROR: $@", $log );
     }
     $_server_manager->disconnect_all() if ($_server_manager);
+    undef $@;
+  }
+  eval {
+    send_report( $orig_master );
+  };
+  if ($@) {
+    MHA::ManagerUtil::print_error( "Got ERROR on final reporting: $@", $log );
     undef $@;
   }
 

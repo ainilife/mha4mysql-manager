@@ -462,14 +462,6 @@ sub send_report {
         . $mail_subject . "\n\n"
         . $mail_body );
     if ( $dead_slave->{report_script} ) {
-      my $new_slaves   = "";
-      my @alive_slaves = $_server_manager->get_alive_slaves();
-      foreach my $slave (@alive_slaves) {
-        if ( $slave->{recover_ok} ) {
-          $new_slaves .= "," if ($new_slaves);
-          $new_slaves .= $slave->{hostname};
-        }
-      }
       my $command =
 "$dead_slave->{report_script} --orig_slave_host=$dead_slave->{hostname} ";
       $command .= " --conf=$g_config_file ";

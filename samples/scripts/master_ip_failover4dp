@@ -27,10 +27,9 @@ use LWP::UserAgent;
 use URI::Escape;
 
 my (
-  $command,        $ssh_user,         $orig_master_host,
-  $orig_master_ip, $orig_master_port, $new_master_host,
-  $new_master_ip,  $new_master_port,  $new_master_user,
-  $new_master_password
+  $command,        $ssh_user,         $orig_master_host, $new_master_host,
+  $orig_master_ip, $orig_master_port, $orig_master_user, $orig_master_password,
+  $new_master_ip,  $new_master_port,  $new_master_user, $new_master_password,
 );
 GetOptions(
   'command=s'          => \$command,
@@ -38,6 +37,8 @@ GetOptions(
   'orig_master_host=s' => \$orig_master_host,
   'orig_master_ip=s'   => \$orig_master_ip,
   'orig_master_port=i' => \$orig_master_port,
+  'orig_master_user=s'     => \$orig_master_user,
+  'orig_master_password=s' => \$orig_master_password,
   'new_master_host=s'  => \$new_master_host,
   'new_master_ip=s'    => \$new_master_ip,
   'new_master_port=i'  => \$new_master_port,

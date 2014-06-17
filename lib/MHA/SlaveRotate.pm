@@ -276,14 +276,28 @@ sub check_settings($) {
         localtime($lastts);
       $mm = $mm + 1;
       $yy = $yy + 1900;
-      my $msg =
-          "Last failover was done at "
-        . "$yy/$mm/$dd $hh:$min:$sec."
-        . " Current time is too early to do failover again. If you want to "
-        . "do failover, manually remove $_failover_complete_file "
-        . "and run this script again.";
-      $log->error($msg);
-      croak;
+      if ($g_interactive) {
+          print "Last failover was done at "
+            . "$yy/$mm/$dd $hh:$min:$sec."
+              . " Maybe it's too early to do failover again. "
+              . " Are sure to Proceed? (yes/NO): ";
+        my $ret = <STDIN>;
+        chomp($ret);
+        if ( lc($ret) !~ /^y/ ){
+            die "Stopping failover." 
+        }else{
+          MHA::NodeUtil::drop_file_if($_failover_complete_file);
+        }
+      }else{
+          my $msg =
+              "Last failover was done at "
+            . "$yy/$mm/$dd $hh:$min:$sec."
+            . " Current time is too early to do failover again. If you want to "
+            . "do failover, manually remove $_failover_complete_file "
+            . "and run this script again.";
+          $log->error($msg);
+          croak;
+      }
     }
     else {
       MHA::NodeUtil::drop_file_if($_failover_complete_file);
