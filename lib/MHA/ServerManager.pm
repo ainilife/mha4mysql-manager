@@ -188,11 +188,6 @@ sub init_servers($) {
     $log->error("There is no alive server. We can't do failover");
     croak;
   }
-  my @alive_slaves = $self->get_alive_slaves();
-  if ( $#alive_slaves <= -1 ) {
-    $log->error("There is no alive slave. We can't do failover");
-    croak;
-  }
 }
 
 sub init_binlog_server {
