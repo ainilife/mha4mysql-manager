@@ -39,11 +39,13 @@ GetOptions(
   'orig_master_port=i' => \$orig_master_port,
   'orig_master_user=s'     => \$orig_master_user,
   'orig_master_password=s' => \$orig_master_password,
+  'orig_master_ssh_user=s'   => \$orig_master_ssh_user,
   'new_master_host=s'  => \$new_master_host,
   'new_master_ip=s'    => \$new_master_ip,
   'new_master_port=i'  => \$new_master_port,
   'new_master_user=s'     => \$new_master_user,
   'new_master_password=s' => \$new_master_password,
+  'new_master_ssh_user=s'    => \$new_master_ssh_user,
 );
 
 exit &main();
@@ -56,28 +58,25 @@ sub main {
     # invalidate orig_master_ip here.
     my $exit_code = 1;
     eval {
-        warn "It's Inner master_ip_fail_over4dp:stop section\n";
-        my $ua=LWP::UserAgent->new;
-        $ua->timeout(5);
-        my $url='http://tools.dba/mysql_manager.php';
+        my $url='http://zebra-web01.beta/a/service';
         my $request_hash= [
-            "orig_master_host"=>$orig_master_host,
-            "orig_master_ip"=>$orig_master_ip,
-            "orig_master_port"=>$orig_master_port,
-            "new_master_host"=>$new_master_host,
-            "new_master_ip"=>$new_master_ip,
-            "new_master_port"=>$new_master_port
+                "op"=>'markDown',
+                "env"=>'dev',
+                "ip"=>$orig_master_ip,
+                "port"=>$orig_master_port,
         ];
-        my $remote_reponse=$ua->post($url,$request_hash);
+        my $remote_response=$ua->post($url,$request_hash);
+        my $content=$remote_response->decoded_content;
         
-        if($remote_reponse eq 'OK'){
-            $exit_code=0;
+        if($content =~ /\{\"status\"\:\ \"0\"/){
+            print "The response from remote server $url is OK:$content\n";
         }else{
             #remote response is not OK
+            print "$@";
+            warn "The response from remote server $url is not OK:$content\n";
             $exit_code=1;
+            exit $exit_code;
         }
-      # updating global catalog, etc
-      $exit_code = 0;
     };
     if ($@) {
       warn "Got Error: $@\n";
@@ -93,27 +92,6 @@ sub main {
     # You can also grant write access (create user, set read_only=0, etc) here.
     my $exit_code = 1;
     eval {
-        warn "It's Inner master_ip_fail_over4dp: start section\n";
-        my $ua=LWP::UserAgent->new;
-        $ua->timeout(5);
-        my $url='http://tools.dba/mysql_manager.php';
-        my $request_hash= [
-            "orig_master_host"=>$orig_master_host,
-            "orig_master_ip"=>$orig_master_ip,
-            "orig_master_port"=>$orig_master_port,
-            "new_master_host"=>$new_master_host,
-            "new_master_ip"=>$new_master_ip,
-            "new_master_port"=>$new_master_port
-        ];
-        my $remote_reponse=$ua->post($url,$request_hash);
-        
-        if($remote_reponse eq 'OK'){
-            $exit_code=0;
-        }else{
-            #remote response is not OK
-            $exit_code=1;
-        }
-
       $exit_code = 0;
     };
     if ($@) {
