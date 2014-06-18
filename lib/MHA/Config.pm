@@ -347,6 +347,7 @@ sub read_config($) {
   my $log               = $self->{logger};
   my @servers           = ();
   my @binlog_servers    = ();
+  my @disabled_servers    = ();
   my $global_configfile = $self->{globalfile};
   my $configfile        = $self->{file};
   my $sd;
@@ -401,11 +402,15 @@ sub read_config($) {
     }
     my $server = $self->parse_server( $cfg->{$block}, $sd );
     $server->{id} = $block;
-    if ( $block =~ /^server\S+/ && $server->{disabled} eq '0' ) {
-      push( @servers, $server );
-    }
-    elsif ( $block =~ /^binlog\S+/ && $server->{disabled} eq '0' ) {
-      push( @binlog_servers, $server );
+    if ( $server->{disabled} ne '0' ){
+        push ( @disabled_servers, $server);
+    }else{
+        if ( $block =~ /^server\S+/ ) {
+          push( @servers, $server );
+        }
+        elsif ( $block =~ /^binlog\S+/ ) {
+          push( @binlog_servers, $server );
+        }
     }
   }
   my @tmp;
@@ -454,7 +459,7 @@ sub read_config($) {
     }
   }
 
-  return ( \@servers, \@binlog_servers );
+  return ( \@servers, \@binlog_servers, \@disabled_servers);
 }
 
 sub read_config_with_disabled($$$) {
