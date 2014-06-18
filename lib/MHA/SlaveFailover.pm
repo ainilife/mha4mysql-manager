@@ -131,10 +131,6 @@ sub check_settings($) {
   #Make sure that dead server is current master only
   $log->info("Dead Servers:");
   $_server_manager->print_dead_servers();
-  if ( $#alive_servers <= 0 ) {
-    $log->error("There is only one alive server. Stop failover");
-    croak;
-  }
 
   my $dead_slave_found = 0;
   foreach my $d (@dead_servers) {
