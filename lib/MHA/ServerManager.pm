@@ -651,8 +651,13 @@ sub validate_current_master($) {
     croak;
   }
 
+
   # verify masters exist in a config file
   my $master;
+  #if there is no slaves, then the master it self can be a slave candidate
+  if ( $num_slaves == 0 ){
+      $master=$alive_servers[0];
+  }
   foreach my $key ( keys(%master_hash) ) {
     my $slave = $master_hash{$key};
     $master = $self->get_master_by_slave($slave);
