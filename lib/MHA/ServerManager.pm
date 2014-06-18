@@ -651,12 +651,6 @@ sub validate_current_master($) {
     croak;
   }
 
-  if ( $num_slaves < 1 ) {
-    $log->error(
-      "There is not any alive slave! Check slave settings for details.");
-    croak;
-  }
-
   # verify masters exist in a config file
   my $master;
   foreach my $key ( keys(%master_hash) ) {
