@@ -30,10 +30,10 @@ my (
   $command,        $ssh_user,         $orig_master_host, $new_master_host,
   $orig_master_ip, $orig_master_port, $orig_master_user, $orig_master_password,
   $new_master_ip,  $new_master_port,  $new_master_user, $new_master_password,
+  $orig_master_ssh_user,$new_master_ssh_user,
 );
 GetOptions(
   'command=s'          => \$command,
-  'ssh_user=s'         => \$ssh_user,
   'orig_master_host=s' => \$orig_master_host,
   'orig_master_ip=s'   => \$orig_master_ip,
   'orig_master_port=i' => \$orig_master_port,
@@ -58,6 +58,8 @@ sub main {
     # invalidate orig_master_ip here.
     my $exit_code = 1;
     eval {
+        my $ua=LWP::UserAgent->new;
+        $ua->timeout(5);
         my $url='http://zebra-web01.beta/a/service';
         my $request_hash= [
                 "op"=>'markDown',
