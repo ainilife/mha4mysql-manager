@@ -83,6 +83,7 @@ sub main {
             $exit_code=1;
             exit $exit_code;
         }
+        $exit_code=0;
     };
     if ($@) {
       warn "Got Error: $@\n";
