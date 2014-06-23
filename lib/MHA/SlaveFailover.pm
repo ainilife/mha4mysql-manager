@@ -262,7 +262,7 @@ sub force_shutdown_internal($) {
     if ( $high == 0 && $low == 0 ) {
       $log->info(" done.");
       $mail_body .=
-        "Invalidated slave IP address on $dead_slave->get_hostinfo().\n";
+        sprintf("Invalidated slave IP address on %s.\n",$dead_slave->get_hostinfo());
     }
     else {
       my $message =
