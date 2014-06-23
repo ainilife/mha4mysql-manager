@@ -25,7 +25,7 @@ use MHA::ManagerConst;
 use MHA::ManagerAdminWrapper;
 use MHA::ManagerUtil;
 
-my @SUPPORTED_CMD = qw/ show set_online set_offline force_offline/;
+my @SUPPORTED_CMD = qw/ show set_online set_offline force_offline show/;
 my %SUPPORTED_CMD_HASH;
 for (@SUPPORTED_CMD) { $SUPPORTED_CMD_HASH{$_} = 1; }
 my $app;
@@ -129,7 +129,6 @@ if ( exists($SUPPORTED_CMD_HASH{$cmd}) ){
             exit $exit_code;
         }
         
-
     }elsif( $cmd eq 'force_offline' ){
         unless ( $node eq 'master' || $node eq 'slave' || $node =~ /[0-9.]+:[0-9.]+/ ){
             print "ERROR: incorrect node name for $cmd: $node\n";
@@ -249,6 +248,12 @@ if ( exists($SUPPORTED_CMD_HASH{$cmd}) ){
             $exit_code=1;
             exit $exit_code;
         }
+    }elsif( $cmd eq 'show' ){
+        my $show_opt='';
+        $show_opt.=" --conf=$app_conf_file";
+        my ( $high, $low ) 
+            = MHA::ManagerUtil::exec_system("masterha_manager_show $show_opt");
+
 
     }
 }else{
@@ -287,18 +292,18 @@ mha_control @app show
 
 mha_control @app set_offline master
 
-mha_control @app set_offline $node
+mha_control @app set_offline <ip:port> 
 
-mha_control @app set_online $node
+mha_control @app set_online <ip:port>
 
-mha_control @app force_offline master $node_ip:$port
+mha_control @app force_offline master <ip:port>
 
-mha_control @app force_offline slave $node_ip:$port
+mha_control @app force_offline slave <ip:port>
 
-See online reference (http://code.google.com/p/mysql-master-ha/wiki/masterha_check_repl) for details.
+See online reference (http://code.google.com/p/mysql-master-ha/wiki/mha_control) for details.
 
 =head1 DESCRIPTION
 
-See online reference (http://code.google.com/p/mysql-master-ha/wiki/masterha_check_repl) for details.
+See online reference (http://code.google.com/p/mysql-master-ha/wiki/mha_control) for details.
 
 

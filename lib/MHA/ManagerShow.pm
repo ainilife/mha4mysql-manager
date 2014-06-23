@@ -38,7 +38,7 @@ my $g_global_config_file = $MHA::ManagerConst::DEFAULT_GLOBAL_CONF;
 my $g_config_file;
 my $g_logfile;
 my $g_workdir;
-my $g_wait_on_failover_error;
+my $g_wait_on_failover_error=0;
 my $_status_handler;
 my $_server_manager;
 my $start_datetime;

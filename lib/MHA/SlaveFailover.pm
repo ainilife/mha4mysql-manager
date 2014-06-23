@@ -262,7 +262,7 @@ sub force_shutdown_internal($) {
     if ( $high == 0 && $low == 0 ) {
       $log->info(" done.");
       $mail_body .=
-        "Invalidated slave IP address on $dead_slave->{hostname}.\n";
+        "Invalidated slave IP address on $dead_slave->get_hostinfo().\n";
     }
     else {
       my $message =
@@ -337,7 +337,7 @@ sub force_shutdown_slave($) {
   my $appname      = $_status_handler->{basename};
   my @alive_slaves = $_server_manager->get_alive_slaves();
   $mail_subject = $appname . ": MySQL Master failover $dead_slave->{hostname}";
-  $mail_body    = "Slave $dead_slave->{hostname} is down!\n\n";
+  $mail_body    = "Slave $dead_slave->get_hostinfo() is down!\n\n";
 
   $mail_body .= "Check MHA Manager logs at " . hostname();
   $mail_body .= ":$g_logfile" if ($g_logfile);
