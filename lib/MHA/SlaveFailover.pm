@@ -337,7 +337,7 @@ sub force_shutdown_slave($) {
   my $appname      = $_status_handler->{basename};
   my @alive_slaves = $_server_manager->get_alive_slaves();
   $mail_subject = $appname . ": MySQL Master failover $dead_slave->{hostname}";
-  $mail_body    = "Slave $dead_slave->get_hostinfo() is down!\n\n";
+  $mail_body    = sprintf("Slave %s is down!\n\n", $dead_slave->get_hostinfo() );
 
   $mail_body .= "Check MHA Manager logs at " . hostname();
   $mail_body .= ":$g_logfile" if ($g_logfile);
