@@ -144,7 +144,7 @@ sub check_settings($) {
   my $dead_slave_found = 0;
   foreach my $d (@dead_servers) {
     if ( $d->{hostname} eq $_dead_slave_arg{hostname} 
-            && $d->{port} eq $_dead_slave_arg->{port} ) {
+            && $d->{port} eq $_dead_slave_arg{port} ) {
       $dead_slave_found = 1;
       $dead_slave       = $d;
       last;
