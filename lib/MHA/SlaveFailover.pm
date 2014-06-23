@@ -127,6 +127,15 @@ sub check_settings($) {
   my @dead_servers  = $_server_manager->get_dead_servers();
   my @alive_servers = $_server_manager->get_alive_servers();
   my @alive_slaves  = $_server_manager->get_alive_slaves();
+  my $master_server = $_server_manager->get_orig_master();
+
+  if( $_dead_slave_arg{hostname} eq $master_server->{hostname} 
+        && $_dead_slave_arg{port} eq $master_server->{port} ){
+    $log->error(
+      "The dead slave is actually master, you should use <mha_control force_offline master> instead Stop failover.");
+    croak;
+  }
+
 
   #Make sure that dead server is current master only
   $log->info("Dead Servers:");
@@ -134,7 +143,8 @@ sub check_settings($) {
 
   my $dead_slave_found = 0;
   foreach my $d (@dead_servers) {
-    if ( $d->{hostname} eq $_dead_slave_arg{hostname} ) {
+    if ( $d->{hostname} eq $_dead_slave_arg{hostname} 
+            && $d->{port} eq $_dead_slave_arg->{port} ) {
       $dead_slave_found = 1;
       $dead_slave       = $d;
       last;
