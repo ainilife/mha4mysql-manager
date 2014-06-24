@@ -19,7 +19,7 @@ CONF=/etc/mha/${CLUSTER}.cnf
 LOGFILE=/var/log/masterha/${CLUSTER}/${CLUSTER}.log  
 
 start () {
-    echo "Starting $CLUSTER..."
+    echo -n "Starting ${CLUSTER}..."
     command_ls=`nohup masterha_manager --conf=$CONF --manager_log=${LOGFILE} < /dev/null >> $LOGFILE 2>&1 &`
     if [[ $? -eq 0 ]]
     then 
@@ -29,11 +29,11 @@ start () {
     fi
 }
 stop () {
-    echo "Stopping $CLUSTER"
+    echo -n "Stopping ${CLUSTER}..."
     start-stop-daemon --stop --quiet --oknodo --pidfile "$pid_file"
 }
 status () {
-    echo "Status of [MHA-$CLUSTER]"
+    echo -n "Status of [MHA-$CLUSTER]:"
     masterha_check_status --conf=${CONF}
 
 }
