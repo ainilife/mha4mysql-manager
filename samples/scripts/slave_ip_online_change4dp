@@ -152,9 +152,6 @@ sub main {
       }
 
       if( $#threads > 0 ){
-          foreach my $single_thread (@threads){
-              print "$single_thread->{Host},$single_thread->{User}\n";
-          }
           print current_time_us() . " Notify Liger remaining IPs for second try\n";
 =pod
             my $url='http://zebra-web01.beta/a/service';
@@ -187,8 +184,14 @@ sub main {
                 current_time_us(), $#threads + 1,
                 $time_until_kill_threads * 100;
               if ( $#threads > 0 ) {
-                print Data::Dumper->new( [$_] )->Indent(0)->Terse(1)->Dump . "\n"
-                  foreach (@threads);
+                my $printed_cnt=0;
+                foreach (@threads){
+                    if( $printed_cnt>10 ){
+                        break;
+                    }
+                    print Data::Dumper->new( [$_] )->Indent(0)->Terse(1)->Dump . "\n"
+                    $printed_cnt++;
+                }
               }
             }
             sleep_until();
