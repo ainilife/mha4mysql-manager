@@ -132,7 +132,8 @@ sub check_settings($) {
   if( $_dead_slave_arg{hostname} eq $master_server->{hostname} 
         && $_dead_slave_arg{port} eq $master_server->{port} ){
     $log->error(
-      "The dead slave is actually master, you should use <mha_control force_offline master> instead Stop failover.");
+      "The dead slave is actually master, you should use <mha_control \@app force_offline master> instead.");
+    $log->error("Stop failover.");
     croak;
   }
 

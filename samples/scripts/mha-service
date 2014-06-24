@@ -1,0 +1,47 @@
+#! /bin/sh
+. /lib/lsb/init-functions
+
+CLUSTER='group';
+CONF=/etc/mha/${CLUSTER}.cnf  
+LOGFILE=/var/log/masterha/${CLUSTER}/${CLUSTER}.log  
+
+start () {
+    command_ls=`nohup masterha_manager --conf=$CONF --manager_log=${LOGFILE} < /dev/null >> $LOGFILE 2>&1 &`
+
+    log_daemon_msg "Starting $CLUSTER"
+}
+stop () {
+    log_daemon_msg "Stopping $CLUSTER"
+    start-stop-daemon --stop --quiet --oknodo --pidfile "$pid_file"
+}
+status () {
+    log_daemon_msg "Status of $CLUSTER"
+    masterha_check_status --conf=${CONF}
+
+}
+case $1 in
+start)
+    if status; then exit 0; fi
+    start
+    status && exit 0 || exit $?
+    ;;
+    stop)
+    stop
+    ;;
+    reload)
+    stop
+    start
+    ;;
+    restart)
+    stop
+    start
+    ;;
+    status)
+    status && exit 0 || exit $?
+    ;;
+    *)
+    echo "Usage: $0 {start|stop|restart|reload|status}"
+    exit 1
+    ;;
+    esac
+    exit 0
