@@ -24,6 +24,7 @@ use Pod::Usage;
 use MHA::ManagerConst;
 use MHA::ManagerAdminWrapper;
 use MHA::ManagerUtil;
+use File::Tee qw(tee);
 
 my @SUPPORTED_CMD = qw/ show set_online set_offline force_offline show/;
 my %SUPPORTED_CMD_HASH;
@@ -34,6 +35,8 @@ my $conf_default_dir='/etc/mha/';
 my $app_conf_file;
 my $help;
 my $version;
+my $log_dir='/var/log/mha/';
+my $log_file='/tmp/mha.log';
 
 my $exit_code = 1;
 $| = 1;
@@ -45,6 +48,7 @@ unless ( defined($app_str) ){
 }
 if ( $app_str =~ /^@(.*)$/ ){
     $app = $1;
+    $log_file = $log_dir."mha_control_".$app.".log";
 }else{
     print "ERROR: Incorrect app name format: <$app_str>\n";
     exit $exit_code;
@@ -67,6 +71,11 @@ unless ( defined($cmd) ){
 my $node = shift @ARGV;
 my $ip = shift @ARGV;
 push( @ARGV,"--conf=$app_conf_file" );
+
+tee(STDOUT, '>>',$log_file);
+tee(STDERR, '>>',$log_file);
+
+
 if ( exists($SUPPORTED_CMD_HASH{$cmd}) ){
     if( $cmd eq 'set_offline' ){
         unless ( $node eq 'master' || $node =~ /\d+:\d+/ ){
