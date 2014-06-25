@@ -48,7 +48,7 @@ unless ( defined($app_str) ){
 }
 if ( $app_str =~ /^@(.*)$/ ){
     $app = $1;
-    $log_file = $log_dir."mha_control_".$app.".log";
+    $log_file = $log_dir."/${app}/mha_control_".$app.".log";
 }else{
     print "ERROR: Incorrect app name format: <$app_str>\n";
     exit $exit_code;
