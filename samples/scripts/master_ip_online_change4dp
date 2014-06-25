@@ -164,9 +164,9 @@ sub main {
                 my $printed_cnt=0;
                 foreach (@threads){
                     if( $printed_cnt>10 ){
-                        break;
+                        last;
                     }
-                    print Data::Dumper->new( [$_] )->Indent(0)->Terse(1)->Dump . "\n"
+                    print Data::Dumper->new( [$_] )->Indent(0)->Terse(1)->Dump . "\n";
                     $printed_cnt++;
                 }
           }

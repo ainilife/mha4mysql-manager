@@ -20,7 +20,7 @@ LOGFILE=/var/log/masterha/${CLUSTER}/${CLUSTER}.log
 
 start () {
     echo -n "Starting ${CLUSTER}..."
-    command_ls=`nohup masterha_manager --conf=$CONF --manager_log=${LOGFILE} < /dev/null >> $LOGFILE 2>&1 &`
+    command_ls=`nohup masterha_manager --conf=$CONF --manager_log=${LOGFILE} < /dev/null >> ${LOGFILE} 2>&1 &`
     if [[ $? -eq 0 ]]
     then 
         echo 'Success';
