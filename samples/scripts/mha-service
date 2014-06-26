@@ -16,11 +16,12 @@
 
 CLUSTER='group';
 CONF=/etc/mha/${CLUSTER}.cnf  
-LOGFILE=/var/log/masterha/${CLUSTER}/${CLUSTER}.log  
+LOGFILE=/var/log/mha/${CLUSTER}/${CLUSTER}.log  
+WORKDIR=/data/mha/${CLUSTER}
 
 start () {
     echo -n "Starting ${CLUSTER}..."
-    command_ls=`nohup masterha_manager --conf=$CONF --manager_log=${LOGFILE} < /dev/null >> ${LOGFILE} 2>&1 &`
+    command_ls=`nohup masterha_manager --conf=$CONF --manager_log=${LOGFILE} --manager_workdir=${WORKDIR} < /dev/null >> ${LOGFILE} 2>&1 &`
     if [[ $? -eq 0 ]]
     then 
         echo 'Success';
@@ -30,7 +31,7 @@ start () {
 }
 stop () {
     echo -n "Stopping ${CLUSTER}..."
-    start-stop-daemon --stop --quiet --oknodo --pidfile "$pid_file"
+    masterha_stop --conf=${CONF}
 }
 status () {
     echo -n "Status of [MHA-$CLUSTER]:"
