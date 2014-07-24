@@ -72,7 +72,7 @@ if ( $is_master_dead == '1' ){
       "--dead_master_ip=$dead_node->{ip}",
       "--dead_master_port=$dead_node->{port}",
       "--ssh_reachable=$ssh_reachable",
-      "--disable_orig_master_conf=1",
+      "--disable_orig_master_conf",
       @ORIG_ARGV
     );
 }else{
@@ -82,6 +82,7 @@ if ( $is_master_dead == '1' ){
       "--dead_slave_ip=$dead_node->{ip}",
       "--dead_slave_port=$dead_node->{port}",
       "--ssh_reachable=$ssh_reachable",
+      "--disable_dead_slave_conf",
       @ORIG_ARGV
     );
 }

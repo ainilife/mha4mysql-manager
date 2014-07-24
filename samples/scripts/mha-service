@@ -18,6 +18,7 @@ CLUSTER='group';
 CONF=/etc/mha/${CLUSTER}.cnf  
 LOGFILE=/var/log/mha/${CLUSTER}/${CLUSTER}.log  
 WORKDIR=/data/mha/${CLUSTER}
+export PATH=$PATH:/usr/local/bin
 
 start () {
     echo -n "Starting ${CLUSTER}..."
