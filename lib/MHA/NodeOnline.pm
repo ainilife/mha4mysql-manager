@@ -109,6 +109,15 @@ sub check_settings($) {
   $log->info("Unmanaged Slaves:");
   $_server_manager->print_unmanaged_slaves_if();
 
+  foreach my $d (@servers) {
+    if ( $d->{hostname} eq $_node_arg{hostname}
+        && $d->{port} eq $_node_arg{port} && $d->{disabled} eq 1) 
+    {
+        $log->error(
+          "The Node $_node_arg{ip}:$_node_arg{port} is already online. Stop mark-up.");
+        croak;
+    }
+  }
   my $node_alive = 0;
   foreach my $d (@alive_servers) {
     if ( $d->{hostname} eq $_node_arg{hostname}
@@ -165,7 +174,7 @@ sub check_settings($) {
     print "Slave $node->{hostname}:$node->{port} is alive. Proceed? (yes/NO): ";
     my $ret = <STDIN>;
     chomp($ret);
-    die "Stopping mark-up." if ( lc($ret) !~ /y/ );
+    die "Stopping mark-up." if ( lc($ret) eq 'yes' );
   }
 
   $_server_manager->get_failover_advisory_locks();
