@@ -16,12 +16,14 @@
 
 CLUSTER='group';
 CONF=/etc/mha/${CLUSTER}.cnf  
-LOGFILE=/var/log/mha/${CLUSTER}/${CLUSTER}.log  
+LOGDIR=/var/log/mha/${CLUSTER}
+LOGFILE=${LOGDIR}/${CLUSTER}.log  
 WORKDIR=/data/mha/${CLUSTER}
 export PATH=$PATH:/usr/local/bin
 
 start () {
     echo -n "Starting ${CLUSTER}..."
+    mkdir -p $LOGDIR
     command_ls=`nohup masterha_manager --conf=$CONF --manager_log=${LOGFILE} --manager_workdir=${WORKDIR} < /dev/null >> ${LOGFILE} 2>&1 &`
     if [[ $? -eq 0 ]]
     then 
