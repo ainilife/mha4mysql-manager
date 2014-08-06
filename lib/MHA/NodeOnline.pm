@@ -111,11 +111,20 @@ sub check_settings($) {
 
   foreach my $d (@servers_config) {
     if ( $d->{hostname} eq $_node_arg{hostname}
-        && $d->{port} eq $_node_arg{port} && $d->{disabled} eq 1) 
+        && $d->{port} eq $_node_arg{port} && $d->{disabled} eq 0) 
     {
+      if ($g_interactive) {
+        $log->warning(
+          "The Node $_node_arg{ip}:$_node_arg{port} is already online. Stop mark-up.");
+        print "Slave $d->{hostname}:$d->{port} is already online. Are you sure to proceed? (yes/NO): ";
+        my $ret = <STDIN>;
+        chomp($ret);
+        die "Stopping mark-up." unless ( lc($ret) eq 'yes' );
+      }else{
         $log->error(
           "The Node $_node_arg{ip}:$_node_arg{port} is already online. Stop mark-up.");
         croak;
+      }
     }
   }
   my $node_alive = 0;
