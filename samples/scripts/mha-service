@@ -47,6 +47,7 @@ case $1 in
 start)
     if status; then exit 0; fi
     start
+    echo 'Wait 5 seconds for daemon to fully startup...' && sleep 5
     status && exit 0 || exit $?
     ;;
     stop)
