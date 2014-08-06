@@ -28,6 +28,7 @@ start () {
     if [[ $? -eq 0 ]]
     then 
         echo 'Success';
+        echo "Found more start-up information in file:${LOGFILE}";
     else
         echo 'Failed';
         echo "Found more error information in file:${LOGFILE}";
