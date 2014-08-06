@@ -109,7 +109,7 @@ sub check_settings($) {
   $log->info("Unmanaged Slaves:");
   $_server_manager->print_unmanaged_slaves_if();
 
-  foreach my $d (@servers) {
+  foreach my $d (@servers_config) {
     if ( $d->{hostname} eq $_node_arg{hostname}
         && $d->{port} eq $_node_arg{port} && $d->{disabled} eq 1) 
     {
