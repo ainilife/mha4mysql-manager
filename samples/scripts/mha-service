@@ -24,12 +24,13 @@ export PATH=$PATH:/usr/local/bin
 start () {
     echo -n "Starting ${CLUSTER}..."
     mkdir -p $LOGDIR
-    command_ls=`nohup masterha_manager --conf=$CONF --manager_log=${LOGFILE} --manager_workdir=${WORKDIR} < /dev/null >> ${LOGFILE} 2>&1 &`
+    command_ls=`nohup masterha_manager_app --conf=$CONF --manager_log=${LOGFILE} --manager_workdir=${WORKDIR} < /dev/null >> ${LOGFILE} 2>&1 &`
     if [[ $? -eq 0 ]]
     then 
         echo 'Success';
     else
         echo 'Failed';
+        echo "Found more error information in file:${LOGFILE}";
     fi
 }
 stop () {
